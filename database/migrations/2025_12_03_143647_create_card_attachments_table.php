@@ -20,6 +20,7 @@ return new class extends Migration
             
             // uploader_date tương đương với created_at
             $table->timestamp('uploaded_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
         });
     }
 

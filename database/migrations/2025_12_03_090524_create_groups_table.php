@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('status')->default('active'); // active, completed, archived
             $table->boolean('is_public')->default(false); // Mặc định là KHÔNG công khai (riêng tư)
             $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
         });
     }
 

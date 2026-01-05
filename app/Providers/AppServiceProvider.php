@@ -19,6 +19,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Share classes with the student dashboard layout
+        \Illuminate\Support\Facades\View::composer('layouts.student_dashboard', function ($view) {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user) {
+                $classes = $user->classes; // Assuming 'classes' relationship exists
+                $view->with('classes', $classes);
+            }
+        });
     }
 }
