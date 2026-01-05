@@ -4,7 +4,7 @@
         <p class="text-secondary small mb-0">Collaborative learning, beautifully organized</p>
     </div>
     
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-auth-session-status class="mb-4" :status="session('status')"  />
 
     <form method="POST" action="{{ route('login') }}" class="mt-4">
         @csrf
@@ -33,7 +33,20 @@
         </div>
 
         <div class="d-flex justify-content-end align-items-center mb-4">
-             {{-- Bỏ Remember Me nếu bạn không cần, hoặc thêm vào đây --}}
+
+            <div class="form-check ">
+                <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    name="remember" 
+                    id="remember"
+                    {{ old('remember') ? 'checked' : '' }}
+                >
+                <label class="form-check-label small text-secondary" for="remember">
+                    {{ __('Remember me') }}
+                </label>
+            </div>
+            
             <div  class="small text-secondary ">
                 @if (Route::has('password.request'))
                     <a href="{{ route('password.request') }}" class="link-custom">{{ __('Forgot Password?') }}</a>
@@ -51,7 +64,6 @@
     <div class="mt-4 text-center">
         <div  class="small text-secondary">
             {{ __('New to EvalSpark?') }} 
-            {{-- Giả định route('register') đã được định nghĩa --}}
             <a href="{{ route('register') }}" class="link-custom">{{ __('Create an account') }}</a>
         </div>
     </div>
