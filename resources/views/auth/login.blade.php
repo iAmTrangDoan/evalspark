@@ -34,18 +34,7 @@
 
         <div class="d-flex justify-content-end align-items-center mb-4">
 
-            <div class="form-check ">
-                <input 
-                    class="form-check-input" 
-                    type="checkbox" 
-                    name="remember" 
-                    id="remember"
-                    {{ old('remember') ? 'checked' : '' }}
-                >
-                <label class="form-check-label small text-secondary" for="remember">
-                    {{ __('Remember me') }}
-                </label>
-            </div>
+     
             
             <div  class="small text-secondary ">
                 @if (Route::has('password.request'))

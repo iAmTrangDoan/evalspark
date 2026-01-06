@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 
 <style>
@@ -146,7 +144,25 @@
                             <div class="d-flex align-items-center gap-2">
                                 <h6 class="mb-0 fw-bold" style="color: <?php echo e($themeColor); ?>;"><?php echo e($group->name ?? 'No Name'); ?></h6>
                             </div>
-                            <!-- Optional: Add random badge or status if needed match snippet rudimentary mapping -->
+                           
+                             <!-- Dropdown -->
+                             <?php if(auth()->id() == $group->leader_id || (auth()->user()->role == 'lecturer' && $group->classRoom->lecture_id == auth()->id())): ?>
+                             <div class="dropdown">
+                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                    <span class="material-symbols-outlined">more_horiz</span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item fw-bold small" href="#" data-bs-toggle="modal" data-bs-target="#editGroupModal<?php echo e($group->id); ?>">Edit Group</a></li>
+                                    <li>
+                                        <form action="<?php echo e(route('groups.destroy', $group->id)); ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this group?');">
+                                            <?php echo csrf_field(); ?>
+                                            <?php echo method_field('DELETE'); ?>
+                                            <button type="submit" class="dropdown-item fw-bold small text-danger">Delete Group</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <p class="small text-muted mb-0">
                             <?php echo e(Str::limit($group->description ?? 'No description provided.', 80)); ?>
@@ -168,6 +184,40 @@
                         </a>
                     </div>
                 </div>
+                <!-- Edit Group Modal -->
+                 <div class="modal fade" id="editGroupModal<?php echo e($group->id); ?>" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <form action="<?php echo e(route('groups.update', $group->id)); ?>" method="POST">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PUT'); ?>
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">Edit Group</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Group Name</label>
+                                        <input type="text" name="name" class="form-control" value="<?php echo e($group->name); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Description</label>
+                                        <textarea name="description" class="form-control" rows="3"><?php echo e($group->description); ?></textarea>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="is_public" value="1" id="isPublic<?php echo e($group->id); ?>" <?php echo e($group->is_public ? 'checked' : ''); ?>>
+                                        <label class="form-check-label fw-bold" for="isPublic<?php echo e($group->id); ?>">Public Group? (Visible to non-members)</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
         </div>

@@ -21,6 +21,7 @@ class ClassRoom extends Model
         'semester',
         'description',
         'status',
+        'class_code', // Add class_code here
     ];
 
     public function lecturer()

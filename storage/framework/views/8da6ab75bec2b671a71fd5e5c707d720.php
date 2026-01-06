@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <style>
     /* Scoped Styles from User Design */

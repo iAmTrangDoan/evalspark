@@ -14,13 +14,14 @@
                 <p class="text-muted small mb-4">Set up a new class structure. You can add specific groups and students later.</p>
                 
                 <div class="row g-3">
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label class="form-label fw-bold small text-uppercase text-muted">Class Name</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">school</span></span>
-                            <input type="text" name="name" class="form-control bg-light border-0 py-2" placeholder="e.g. Introduction to Computer Science" required>
+                            <input type="text" name="name" class="form-control bg-light border-0 py-2" placeholder="e.g. Intro to CS" required>
                         </div>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold small text-uppercase text-muted">Semester</label>
                          <div class="input-group">

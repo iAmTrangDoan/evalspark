@@ -31,7 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('classes', ClassController::class);
     Route::post('classes/join', [ClassController::class, 'join'])->name('classes.join');
 
-    Route::resource('groups', GroupController::class)->only(['store', 'show', 'update', 'create', 'index']);
+    Route::resource('groups', GroupController::class)->only(['store', 'show', 'update', 'destroy', 'create', 'index']);
     Route::resource('boards', BoardController::class)->only(['store', 'show', 'update']);
     Route::resource('lists', ListController::class)->only(['store', 'show', 'update', 'destroy']);
     Route::resource('cards', CardController::class)->only(['store', 'show', 'update', 'destroy']);
@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
     Route::post('/grades/{group}/unlock', [GradeController::class, 'unlock'])->name('grades.unlock');
     Route::post('/groups/members', [GroupController::class, 'storeMember'])->name('groups.members.store');
+    Route::get('/groups/{group}/candidates', [GroupController::class, 'searchCandidates'])->name('groups.candidates');
+    Route::post('/groups/{group}/transfer-leadership', [GroupController::class, 'transferLeadership'])->name('groups.transfer_leadership');
 
 
     

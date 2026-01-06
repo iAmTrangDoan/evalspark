@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <style>
     :root {
@@ -190,7 +188,7 @@
             </div>
             <div class="d-flex gap-2">
                 <?php if($isLecturer): ?>
-                    <button class="btn btn-primary fw-bold px-4 rounded-3 d-flex align-items-center gap-2">
+                    <button class="btn btn-primary fw-bold px-4 rounded-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editClassModal<?php echo e($class->id); ?>">
                         <span class="material-symbols-outlined" style="font-size: 18px;">edit</span> Edit
                     </button>
                     <!-- Join Code Display for Lecturer -->
@@ -217,22 +215,54 @@
                     <span class="badge bg-light text-muted border rounded-pill ms-2"><?php echo e($class->groups->count()); ?></span>
                 </div>
                 <!-- Optional sorting placeholder -->
-                <select class="form-select form-select-sm w-auto border-0 bg-transparent fw-bold shadow-none cursor-pointer">
-                    <option>Recent Activity</option>
-                    <option>Name A-Z</option>
-                </select>
+                <!-- Sorting -->
+                <form action="<?php echo e(route('classes.show', $class)); ?>" method="GET">
+                    <select name="sort" class="form-select form-select-sm w-auto border-0 bg-transparent fw-bold shadow-none cursor-pointer" onchange="this.form.submit()">
+                        <option value="newest" <?php echo e($sort == 'newest' ? 'selected' : ''); ?>>Recent Activity</option>
+                        <option value="oldest" <?php echo e($sort == 'oldest' ? 'selected' : ''); ?>>Oldest First</option>
+                        <option value="name_asc" <?php echo e($sort == 'name_asc' ? 'selected' : ''); ?>>Name A-Z</option>
+                        <option value="name_desc" <?php echo e($sort == 'name_desc' ? 'selected' : ''); ?>>Name Z-A</option>
+                    </select>
+                </form>
             </div>
 
             <div class="row g-4">
                 <?php $__currentLoopData = $class->groups; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <div class="col-md-6">
-                    <a href="<?php echo e(route('groups.show', $group)); ?>" class="board-card" style="border-left-color: #0078bd;">
+                    <?php
+                        $canAccess = $group->is_public || $group->members->contains(auth()->id()) || $isLecturer;
+                    ?>
+                    <div onclick="<?php echo e($canAccess ? "window.location.href='".route('groups.show', $group)."'" : "alert('This is a private group. You must be a member to view it.');"); ?>" 
+                         class="board-card <?php echo e($canAccess ? 'cursor-pointer' : ''); ?>" 
+                         style="border-left-color: #0078bd; cursor: <?php echo e($canAccess ? 'pointer' : 'not-allowed'); ?>; <?php echo e(!$canAccess ? 'opacity: 0.7; background: #f8f9fa;' : ''); ?>">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <span class="category-badge" style="background: #0078bd15; color: #0078bd;">
                                     PROJECT
                                 </span>
-                                <span class="material-symbols-outlined text-muted">more_horiz</span>
+                                <?php if(auth()->id() == $group->leader_id || $isLecturer): ?>
+                                <div class="dropdown" onclick="event.stopPropagation();">
+                                    <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                        <span class="material-symbols-outlined">more_horiz</span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item fw-bold small" href="#" data-bs-toggle="modal" data-bs-target="#editGroupModal<?php echo e($group->id); ?>">Edit Group</a></li>
+                                        <li>
+                                            <form action="<?php echo e(route('groups.destroy', $group->id)); ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this group?');">
+                                                <?php echo csrf_field(); ?>
+                                                <?php echo method_field('DELETE'); ?>
+                                                <button type="submit" class="dropdown-item fw-bold small text-danger">Delete Group</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <?php else: ?>
+                                    <?php if(!$canAccess): ?>
+                                        <span class="material-symbols-outlined text-muted" title="Private Group">lock</span>
+                                    <?php else: ?>
+                                        <span class="material-symbols-outlined text-muted">more_horiz</span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                             <h5 class="fw-bold text-dark lh-sm"><?php echo e($group->name); ?></h5>
                         </div>
@@ -253,7 +283,42 @@
 
                             </div>
                         </div>
-                    </a>
+                    </div>
+                </div>
+
+                
+                <!-- Edit Group Modal -->
+                 <div class="modal fade" id="editGroupModal<?php echo e($group->id); ?>" tabindex="-1" aria-hidden="true" onclick="event.preventDefault();">
+                    <div class="modal-dialog modal-dialog-centered" onclick="event.stopPropagation();">
+                        <form action="<?php echo e(route('groups.update', $group->id)); ?>" method="POST">
+                            <?php echo csrf_field(); ?>
+                            <?php echo method_field('PUT'); ?>
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">Edit Group</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Group Name</label>
+                                        <input type="text" name="name" class="form-control" value="<?php echo e($group->name); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Description</label>
+                                        <textarea name="description" class="form-control" rows="3"><?php echo e($group->description); ?></textarea>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="is_public" value="1" id="isPublic<?php echo e($group->id); ?>" <?php echo e($group->is_public ? 'checked' : ''); ?>>
+                                        <label class="form-check-label fw-bold" for="isPublic<?php echo e($group->id); ?>">Public Group? (Visible to non-members)</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
@@ -299,7 +364,7 @@
                             </div>
                             <div class="d-flex flex-column">
                                 <span class="fw-bold small text-dark"><?php echo e($student->name); ?></span>
-                                <span class="text-muted" style="font-size: 11px;"><?php echo e($student->email); ?></span>
+                                <span class="text-muted" style="font-size: 11px;"><?php echo e($student->code); ?></span>
                             </div>
                         </div>
                     </div>
@@ -334,6 +399,64 @@
 
 <!-- Create Group Modal -->
 <?php echo $__env->make('groups.partials.create_modal', ['class' => $class], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+<?php if($isLecturer): ?>
+<!-- Edit Class Modal -->
+<div class="modal fade" id="editClassModal<?php echo e($class->id); ?>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form action="<?php echo e(route('classes.update', $class->id)); ?>" method="POST">
+        <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?>
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header border-0 pt-4 px-4 pb-0">
+                <h5 class="modal-title fw-black d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary fs-3">edit_note</span>
+                    Edit Class
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Class Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">school</span></span>
+                            <input type="text" name="name" class="form-control bg-light border-0 py-2" value="<?php echo e($class->name); ?>" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Class Code and Join Code on same row to save space? or split. Keeping detailed as per prev request -->
+
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Join Code</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">key</span></span>
+                            <input type="text" name="join_code" class="form-control bg-light border-0 py-2" value="<?php echo e($class->join_code); ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Semester</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">calendar_month</span></span>
+                            <input type="text" name="semester" class="form-control bg-light border-0 py-2" value="<?php echo e($class->semester); ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Description (Optional)</label>
+                        <textarea name="description" class="form-control bg-light border-0" rows="3"><?php echo e($class->description); ?></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 p-3 rounded-bottom-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">Save Changes</button>
+            </div>
+        </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
     document.getElementById('student-search').addEventListener('input', function(e) {

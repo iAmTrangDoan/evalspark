@@ -354,24 +354,27 @@
              Manage Groups
           </a>
 
-          <div class="sidebar-section-title cursor-pointer" data-bs-toggle="collapse" data-bs-target="#teachingClasses" aria-expanded="true">
-            <span>Teaching Classes</span>
-            <span class="material-icons-outlined transition-transform" style="font-size: 16px">expand_more</span>
-          </div>
+        <!-- Teaching Classes -->
+        <div class="sidebar-section-title cursor-pointer" data-bs-toggle="collapse" data-bs-target="#teachingClassesList" aria-expanded="true">
+          <span>Teaching Classes</span>
+          <span class="material-icons-outlined transition-transform" style="font-size: 16px">expand_more</span>
+        </div>
+
+        <div class="collapse show" id="teachingClassesList">
+        @if(isset($teaching_classes) && $teaching_classes->count() > 0)
+            @foreach($teaching_classes as $class)
+            <a href="{{ route('classes.show', $class->id) }}" class="nav-link {{ request()->is('classes/'.$class->id) ? 'active' : '' }}">
+            
+              <div class="text-truncate">
+                <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.2;">{{ $class->name }}</div>
           
-          <div class="collapse show" id="teachingClasses">
-              <!-- Dynamic Classes in Sidebar -->
-              @if(isset($classes))
-                  @foreach($classes as $class)
-                  <a href="{{ route('classes.show', $class->id) }}" class="nav-link d-flex justify-content-between">
-                    <div class="d-flex align-items-center text-primary">
-                      
-                      {{ $class->name }}
-                    </div>
-                  </a>
-                  @endforeach
-              @endif
-          </div>
+              </div>
+            </a>
+            @endforeach
+        @else
+            <div class="px-3 text-muted small">No classes yet.</div>
+        @endif
+        </div>
           
           <style>
               .cursor-pointer { cursor: pointer; }

@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <style>
     :root {
@@ -70,18 +68,33 @@
 <div class="container-xxl">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-4 mb-5">
         <div>
-            <h1 class="fw-black mb-1 fw-bold">My Classes</h1>
-            <p class="text-muted mb-0">Manage your active courses, track student progress, and organize groups.</p>
+            <h1 class="fw-black mb-1 fw-bold"><?php echo e($isArchived ? 'Archived Classes' : 'My Classes'); ?></h1>
+            <p class="text-muted mb-0">
+                <?php echo e($isArchived ? 'View and restore your archived courses.' : 'Manage your active courses, track student progress, and organize groups.'); ?>
+
+            </p>
         </div>
-        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createClassModal">
-            <span class="material-symbols-outlined">add</span>
-            Create Class
-        </button>
+        <div class="d-flex gap-2">
+            <a href="<?php echo e(route('classes.index', ['archived' => $isArchived ? 'false' : 'true'])); ?>" class="btn <?php echo e($isArchived ? 'btn-outline-primary' : 'btn-outline-secondary'); ?> fw-bold d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined"><?php echo e($isArchived ? 'arrow_back' : 'archive'); ?></span>
+                <?php echo e($isArchived ? 'Back to Active Classes' : 'View Archived Classes'); ?>
+
+            </a>
+            <?php if(!$isArchived): ?>
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                <span class="material-symbols-outlined">add</span>
+                Create Class
+            </button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Search & Filter Bar -->
     <div class="card border-0 shadow-sm rounded-4 p-2 mb-5">
         <form action="<?php echo e(route('classes.index')); ?>" method="GET" class="row g-2 align-items-center mb-0">
+            <?php if($isArchived): ?>
+                <input type="hidden" name="archived" value="true">
+            <?php endif; ?>
             <div class="col-md-8">
                 <div class="search-container">
                     <span class="material-symbols-outlined">search</span>
@@ -104,7 +117,7 @@
         <?php $__empty_1 = true; $__currentLoopData = $classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $class): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
         <?php
             $colors = ['#0d6efd', '#a855f7', '#198754', '#ffc107', '#dc3545'];
-            $themeColor = $colors[$index % count($colors)];
+            $themeColor = $isArchived ? '#6c757d' : $colors[$index % count($colors)]; // Grey for archived
             $badgeBg = $themeColor . '1a'; // 10% opacity hex
             
             $progress = rand(20, 95);
@@ -115,29 +128,33 @@
                 <div class="top-bar" style="background-color: <?php echo e($themeColor); ?>;"></div>
                 <div class="p-4 flex-grow-1">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="badge fw-bold" style="background-color: <?php echo e($badgeBg); ?>; color: <?php echo e($themeColor); ?>;">
-                            <?php echo e($class->class_code); ?>
 
-                        </span>
                         <div class="dropdown">
                             <button class="btn btn-sm text-muted p-0" type="button" data-bs-toggle="dropdown">
                                 <span class="material-symbols-outlined">more_vert</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                                 <li><a class="dropdown-item small" href="<?php echo e(route('classes.show', $class->id)); ?>">View Details</a></li>
-                                <li><a class="dropdown-item small" href="<?php echo e(route('classes.edit', $class->id)); ?>">Edit Class</a></li>
+                                <li>
+                                    <button class="dropdown-item small" type="button" data-bs-toggle="modal" data-bs-target="#editClassModal<?php echo e($class->id); ?>">
+                                        Edit Class
+                                    </button>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                      <form action="<?php echo e(route('classes.destroy', $class->id)); ?>" method="POST">
                                         <?php echo csrf_field(); ?>
                                         <?php echo method_field('DELETE'); ?>
-                                        <button type="submit" class="dropdown-item small text-danger" onclick="return confirm('Are you sure?')">Delete Class</button>
+                                        <button type="submit" class="dropdown-item small <?php echo e($isArchived ? 'text-success' : 'text-warning'); ?>" onclick="return confirm('<?php echo e($isArchived ? 'Restore this class?' : 'Archive this class?'); ?>')">
+                                            <?php echo e($isArchived ? 'Restore Class' : 'Archive Class'); ?>
+
+                                        </button>
                                      </form>
                                 </li>
                             </ul>
                         </div>
                     </div>
-                    <h5 class="fw-bold mb-1"><?php echo e($class->name); ?></h5>
+                    <h5 class="fw-bold mb-1 <?php echo e($isArchived ? 'text-muted' : ''); ?>"><?php echo e($class->name); ?></h5>
                     <p class="text-muted small"><?php echo e($class->semester); ?></p>
                     
                     <div class="row text-center g-2 my-4">
@@ -169,6 +186,59 @@
                     <a href="<?php echo e(route('classes.show', $class->id)); ?>" class="text-decoration-none text-primary fw-bold small d-flex align-items-center justify-content-center gap-2">
                         View Details <span class="material-symbols-outlined fs-6">arrow_forward</span>
                     </a>
+                </div>
+            </div>
+
+            <!-- Edit Class Modal -->
+            <div class="modal fade" id="editClassModal<?php echo e($class->id); ?>" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <form action="<?php echo e(route('classes.update', $class->id)); ?>" method="POST">
+                    <?php echo csrf_field(); ?>
+                    <?php echo method_field('PUT'); ?>
+                    <div class="modal-content shadow-lg border-0 rounded-4">
+                        <div class="modal-header border-0 pt-4 px-4 pb-0">
+                            <h5 class="modal-title fw-black d-flex align-items-center gap-2">
+                                <span class="material-symbols-outlined text-primary fs-3">edit_note</span>
+                                Edit Class
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Class Name</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">school</span></span>
+                                        <input type="text" name="name" class="form-control bg-light border-0 py-2" value="<?php echo e($class->name); ?>" required>
+                                    </div>
+                                </div>
+        
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Join Code</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">key</span></span>
+                                        <input type="text" name="join_code" class="form-control bg-light border-0 py-2" value="<?php echo e($class->join_code); ?>" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Semester</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0"><span class="material-symbols-outlined text-muted fs-5">calendar_month</span></span>
+                                        <input type="text" name="semester" class="form-control bg-light border-0 py-2" value="<?php echo e($class->semester); ?>" required>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Description (Optional)</label>
+                                    <textarea name="description" class="form-control bg-light border-0" rows="3"><?php echo e($class->description); ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-0 p-3 rounded-bottom-4">
+                            <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">Save Changes</button>
+                        </div>
+                    </div>
+                    </form>
                 </div>
             </div>
         </div>

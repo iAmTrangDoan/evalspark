@@ -355,7 +355,7 @@
             <!-- Render Cards -->
             <div class="kanban-cards-wrapper custom-scrollbar">
                 @foreach($list->cards as $card)
-                <div class="kanban-card" id="card-{{ $card->id }}" draggable="true" ondragstart="drag(event)" onclick='openTaskModal(@json($card))'>
+                <div class="kanban-card" id="card-{{ $card->id }}" draggable="true" ondragstart="drag(event)" onclick="onCardClick(this)" data-card="{{ json_encode($card) }}">
                     @if($card->label)
                     <span class="badge-custom bg-purple bg-opacity-10 text-info" style="background-color: #f3e8ff; color: #7e22ce;">{{ $card->label }}</span>
                     @endif
@@ -408,11 +408,7 @@
             <!-- Default structure if no lists exist -->
             <div class="text-center w-100 py-5">
                 <p class="text-muted">No lists found. Start by adding one!</p>
-                <div class="kanban-column bg-transparent border-0 shadow-none" style="min-width: 320px;">
-                    <button class="btn btn-light w-100 py-3 fw-bold text-muted border-dashed" data-bs-toggle="modal" data-bs-target="#createListModal">
-                        <span class="material-symbols-outlined align-middle me-2">add</span> Add another list
-                    </button>
-                </div>
+             
             </div>
         @endforelse
 
@@ -479,6 +475,19 @@
                                     <div class="progress-bar {{ $percent == 100 ? 'bg-success' : 'bg-primary' }}" style="width: {{ $percent }}%;"></div>
                                 </div>
                              </div>
+                             
+
+
+                             @if($group->leader_id == auth()->id() && $member->id != auth()->id())
+                                <form action="{{ route('groups.transfer_leadership', $group->id) }}" method="POST" onclick="event.stopPropagation();" onsubmit="return confirm('Transfer leadership to {{ $member->name }}?');">
+                                    @csrf
+                                    <input type="hidden" name="user_id" value="{{ $member->id }}">
+                                    <button type="submit" class="btn btn-warning btn-sm fw-bold d-flex align-items-center gap-1 p-1 px-2" style="font-size: 0.75rem;">
+                                        <span class="material-symbols-outlined" style="font-size: 1.1rem;">star</span>
+                                        <span class="d-none d-lg-inline">Make Leader</span>
+                                    </button>
+                                </form>
+                             @endif
                              
                              <span class="material-symbols-outlined text-muted">expand_more</span>
                         </div>
@@ -664,18 +673,60 @@
         document.getElementById('btnAddMember').disabled = false;
     }
 
-    // Client-side search logic
-    document.getElementById('memberSearchInput').addEventListener('input', function(e) {
-        const term = e.target.value.toLowerCase();
-        document.querySelectorAll('.suggestion-item').forEach(item => {
-            const name = item.querySelector('.student-name').innerText.toLowerCase();
-            const email = item.querySelector('.student-email').innerText.toLowerCase();
-            if(name.includes(term) || email.includes(term)) {
-                item.style.display = 'flex';
-            } else {
-                item.style.display = 'none';
-            }
-        });
+    // AJAX Search Logic
+    let searchTimeout;
+    const searchInput = document.getElementById('memberSearchInput');
+    const suggestionsList = document.getElementById('suggestionsList');
+
+    searchInput.addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        const term = e.target.value.trim();
+        
+        if (term.length < 1) {
+            // If empty, maybe show 'recent' or 'all' if you prefer, or just clear.
+            // For now, let's just clear or show initial eligible list if provided from server.
+             // But since we want to search, let's keep it simple: clear if empty query? 
+             // Or reload the page's original list? The original list was server-rendered.
+             // Let's just do nothing or show the original list if we hid it. 
+             // Ideally we should just rely on search.
+             return; 
+        }
+
+        searchTimeout = setTimeout(async () => {
+             try {
+                 const response = await fetch(`{{ route('groups.candidates', $group->id) }}?q=${encodeURIComponent(term)}`);
+                 const students = await response.json();
+                 
+                 suggestionsList.innerHTML = '';
+                 
+                 if (students.length === 0) {
+                     suggestionsList.innerHTML = '<p class="text-muted small text-center py-3">No matching students found.</p>';
+                     return;
+                 }
+
+                 students.forEach(student => {
+                     const html = `
+                        <div class="suggestion-item p-2 border rounded mb-2 d-flex align-items-center justify-content-between cursor-pointer" 
+                                 onclick="selectUser(this, ${student.id})">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="user-avatar rounded-circle" style="width: 40px; height: 40px; background-image: url('${student.avatar_url}'); background-size: cover;"></div>
+                                    <div>
+                                        <div class="fw-bold small student-name">${student.name}</div>
+                                        <div class="text-muted small student-email" style="font-size: 0.75rem;">${student.email}</div>
+                                    </div>
+                                </div>
+                                <div class="check-badge rounded-circle bg-primary text-white d-none align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                    <span class="material-symbols-outlined fs-6">check</span>
+                                </div>
+                            </div>
+                     `;
+                     suggestionsList.innerHTML += html;
+                 });
+
+             } catch(e) {
+                 console.error(e);
+             }
+        }, 300); // 300ms debounce
     });
 </script>
 
@@ -765,10 +816,27 @@
                 <div class="row g-3 mb-5 ms-md-4">
                     <div class="col-sm-6 col-md-3">
                         <div class="property-label">Assignee</div>
-                        <button class="property-btn">
-                            <img id="taskAssigneeAvatar" src="https://ui-avatars.com/api/?name=Unassigned&background=e2e8f0" class="rounded-circle" width="20" height="20">
-                            <span class="text-truncate" id="taskAssigneeName">Unassigned</span>
-                        </button>
+                        <div class="dropdown">
+                            <button class="property-btn dropdown-toggle no-arrow w-100 justify-content-start" type="button" data-bs-toggle="dropdown">
+                                <img id="taskAssigneeAvatar" src="https://ui-avatars.com/api/?name=Unassigned&background=e2e8f0" class="rounded-circle" width="20" height="20">
+                                <span class="text-truncate" id="taskAssigneeName">Unassigned</span>
+                            </button>
+                            <ul class="dropdown-menu shadow-sm border-0">
+                                <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="updateAssignee(null, 'Unassigned', 'https://ui-avatars.com/api/?name=Unassigned&background=e2e8f0')">
+                                     <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border" style="width: 20px; height: 20px;">
+                                        <span class="material-symbols-outlined text-muted" style="font-size: 14px;">person_off</span>
+                                     </div>
+                                     <span class="small">Unassigned</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                @foreach($group->members as $member)
+                                 <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" onclick="updateAssignee({{ $member->id }}, '{{ $member->name }}', '{{ $member->avatar_url }}')">
+                                      <img src="{{ $member->avatar_url }}" class="rounded-circle" width="20" height="20">
+                                      <span class="small">{{ $member->name }}</span>
+                                 </a></li>
+                                @endforeach
+                            </ul>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-md-3">
                         <div class="property-label">Priority</div>
@@ -781,10 +849,13 @@
                     </div>
                     <div class="col-sm-6 col-md-3">
                         <div class="property-label">Due Date</div>
-                        <button class="property-btn">
-                            <span class="material-symbols-outlined fs-6">calendar_month</span>
-                            <span id="taskDueDate">--</span>
-                        </button>
+                        <div class="position-relative">
+                             <button class="property-btn w-100" onclick="document.getElementById('taskDueDateInput').showPicker()">
+                                <span class="material-symbols-outlined fs-6">calendar_month</span>
+                                <span id="taskDueDate">--</span>
+                            </button>
+                            <input type="date" id="taskDueDateInput" class="position-absolute" style="visibility: hidden; position: absolute; bottom: 0; left: 0;" onchange="updateDueDate(this.value)">
+                        </div>
                     </div>
                 </div>
 
@@ -910,6 +981,17 @@
         new bootstrap.Modal(document.getElementById('createCardModal')).show();
     }
 
+    // Card Click Wrapper
+    function onCardClick(element) {
+        try {
+            const cardData = JSON.parse(element.getAttribute('data-card'));
+            openTaskModal(cardData);
+        } catch(e) {
+            console.error('Error parsing card data:', e);
+            alert('Error opening card: ' + e.message);
+        }
+    }
+
     // Modal Logic
     let currentCard = null;
 
@@ -932,6 +1014,9 @@
              document.getElementById('taskAssigneeName').innerText = 'Unassigned';
              document.getElementById('taskAssigneeAvatar').src = `https://ui-avatars.com/api/?name=Unassigned&background=e2e8f0`;
         }
+        
+        // Populate Date Input
+        document.getElementById('taskDueDateInput').value = card.due_date ? card.due_date.substring(0, 10) : '';
 
         // Render Checklists
         renderChecklists(card.checklists || []);
@@ -1043,6 +1128,7 @@
 
     async function deleteChecklist(id) {
         if(!confirm('Delete this checklist?')) return;
+        
         try {
             const response = await fetch(`/checklists/${id}`, {
                 method: 'POST',
@@ -1057,6 +1143,64 @@
             }
         } catch(e) { console.error(e); }
     }
+
+    // --- New Update Functions ---
+
+    function updateLocalCardData(updates) {
+        if(!currentCard) return;
+        
+        // 1. Update memory object
+        Object.assign(currentCard, updates);
+        
+        // 2. Update DOM data attribute
+        const cardEl = document.getElementById(`card-${currentCard.id}`);
+        if(cardEl) {
+            cardEl.setAttribute('data-card', JSON.stringify(currentCard));
+        }
+    }
+
+    function updateAssignee(userId, userName, userAvatar) {
+        if(!currentCard) return;
+
+        // UI Update
+        document.getElementById('taskAssigneeName').innerText = userName;
+        document.getElementById('taskAssigneeAvatar').src = userAvatar;
+
+        // API
+        fetch(`/cards/${currentCard.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: JSON.stringify({ assigned_to: userId })
+        }).then(res => { 
+            if(res.ok) {
+               // Update card object ref
+               const newUser = { id: userId, name: userName, avatar_url: userAvatar };
+               // Update local
+               updateLocalCardData({ assigned_to: userId, assigned_user: newUser });
+            }
+        });
+    }
+
+    function updateDueDate(date) {
+        if(!currentCard) return;
+        
+        // UI Update
+        const dateObj = date ? new Date(date) : null;
+        document.getElementById('taskDueDate').innerText = dateObj ? dateObj.toLocaleDateString() : '--';
+
+        // API
+        fetch(`/cards/${currentCard.id}`, {
+             method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: JSON.stringify({ due_date: date })
+        }).then(res => {
+            if(res.ok) {
+                updateLocalCardData({ due_date: date });
+            }
+        });
+    }
+
+
 
     function openAddItemModal(checklistId) {
         document.getElementById('addItemChecklistId').value = checklistId;

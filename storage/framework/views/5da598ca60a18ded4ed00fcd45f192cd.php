@@ -383,25 +383,27 @@ unset($__defined_vars, $__key, $__value); ?>
              Manage Groups
           </a>
 
-          <div class="sidebar-section-title cursor-pointer" data-bs-toggle="collapse" data-bs-target="#teachingClasses" aria-expanded="true">
-            <span>Teaching Classes</span>
-            <span class="material-icons-outlined transition-transform" style="font-size: 16px">expand_more</span>
-          </div>
-          
-          <div class="collapse show" id="teachingClasses">
-              <!-- Dynamic Classes in Sidebar -->
-              <?php if(isset($classes)): ?>
-                  <?php $__currentLoopData = $classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $class): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                  <a href="<?php echo e(route('classes.show', $class->id)); ?>" class="nav-link d-flex justify-content-between">
-                    <div class="d-flex align-items-center text-primary">
-                      
-                      <?php echo e($class->name); ?>
+        <!-- Teaching Classes -->
+        <div class="sidebar-section-title cursor-pointer" data-bs-toggle="collapse" data-bs-target="#teachingClassesList" aria-expanded="true">
+          <span>Teaching Classes</span>
+          <span class="material-icons-outlined transition-transform" style="font-size: 16px">expand_more</span>
+        </div>
 
-                    </div>
-                  </a>
-                  <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-              <?php endif; ?>
-          </div>
+        <div class="collapse show" id="teachingClassesList">
+        <?php if(isset($teaching_classes) && $teaching_classes->count() > 0): ?>
+            <?php $__currentLoopData = $teaching_classes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $class): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <a href="<?php echo e(route('classes.show', $class->id)); ?>" class="nav-link <?php echo e(request()->is('classes/'.$class->id) ? 'active' : ''); ?>">
+            
+              <div class="text-truncate">
+                <div style="font-size: 0.85rem; font-weight: 600; line-height: 1.2;"><?php echo e($class->name); ?></div>
+          
+              </div>
+            </a>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        <?php else: ?>
+            <div class="px-3 text-muted small">No classes yet.</div>
+        <?php endif; ?>
+        </div>
           
           <style>
               .cursor-pointer { cursor: pointer; }

@@ -133,6 +133,7 @@
         @foreach($classes as $class)
         <div class="col-12 col-md-6 col-lg-4">
             <div class="class-card p-4">
+
                 <h4 class="fw-bold mb-4" style="min-height: 3rem">{{ $class->name }}</h4>
                 
                 <div class="d-flex align-items-center gap-3 mb-4 pb-4 border-bottom">
